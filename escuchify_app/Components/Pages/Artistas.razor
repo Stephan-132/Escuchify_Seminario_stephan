@@ -83,11 +83,10 @@
     string nuevoNombre = "";
     string nuevoGenero = "";
     string busqueda = "";
-    List<Artista> ArtistasFiltrados => artistas
-    .Where(a => a.Nombre.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ||
-    a.Genero.Contains(busqueda, StringComparison.OrdinalIgnoreCase))
-    .ToList();
-    escuchify_app.Models.Artista nuevoArtista = new();
+    List<Artista> ArtistasFiltrados => artistas?
+        .Where(a => a.Nombre.Contains(busqueda, StringComparison.OrdinalIgnoreCase) ||
+                    a.Genero.Contains(busqueda, StringComparison.OrdinalIgnoreCase))
+        .ToList() ?? new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -99,30 +98,36 @@
         artistas = await Api.ObtenerArtistas();
     }
 
-async Task CrearArtista()
+    async Task CrearArtista()
     {
-        // Asignamos los valores de los inputs al objeto
-        nuevoArtista.Nombre = nuevoNombre;
-        nuevoArtista.Genero = nuevoGenero;
+        if (string.IsNullOrWhiteSpace(nuevoNombre) || string.IsNullOrWhiteSpace(nuevoGenero))
+        {
+            await JS.InvokeVoidAsync("Swal.fire", "Oops...", "Nombre y género no pueden estar vacíos.", "warning");
+            return;
+        }
 
-        var (exito, mensajeError) = await Api.CrearArtista(nuevoArtista);
+        var artistaParaCrear = new Artista
+        {
+            Nombre = nuevoNombre,
+            Genero = nuevoGenero
+        };
+
+        var (exito, mensajeError) = await Api.CrearArtista(artistaParaCrear);
 
         if (exito)
         {
             await JS.InvokeVoidAsync("Swal.fire", new {
                 icon = "success",
                 title = "¡Guardado!",
-                text = $"Se agregó a {nuevoArtista.Nombre}",
+                text = $"Se agregó a {artistaParaCrear.Nombre}",
                 background = "#1e293b",
                 color = "#fff",
                 timer = 2000,
                 showConfirmButton = false
             });
 
-            // Limpiar y recargar
             nuevoNombre = "";
             nuevoGenero = "";
-            nuevoArtista = new escuchify_app.Models.Artista(); 
             await CargarDatos();
         }
         else
@@ -136,6 +141,7 @@ async Task CrearArtista()
             });
         }
     }
+
     async Task Eliminar(Models.Artista artista)
     {
         // Preguntamos primero para evitar accidentes

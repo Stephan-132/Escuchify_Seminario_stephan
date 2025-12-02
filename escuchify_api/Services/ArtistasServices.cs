@@ -72,8 +72,20 @@ public class ArtistasService
 
     private async Task<string?> ObtenerResumenDeWikipedia(string nombreArtista)
     {
+        // Intento 1: Buscar con el nombre completo
+        var resumen = await BuscarEnWikipedia(nombreArtista);
+        if (!string.IsNullOrEmpty(resumen))
+        {
+            return resumen;
+        }
+
+        return null; // Si ningún intento funcionó
+    }
+
+    private async Task<string?> BuscarEnWikipedia(string terminoBusqueda)
+    {
         var cliente = _httpClientFactory.CreateClient();
-        var url = $"https://es.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&redirects=1&titles={Uri.EscapeDataString(nombreArtista)}";
+        var url = $"https://es.wikipedia.org/w/api.php?action=query&prop=extracts&exintro&explaintext&format=json&redirects=1&titles={Uri.EscapeDataString(terminoBusqueda)}";
 
         try
         {
@@ -85,9 +97,23 @@ public class ArtistasService
 
             var pagina = wikiRespuesta?.Query?.Pages?.Values.FirstOrDefault();
             
-            // Si el extracto está vacío o es una redirección/página de desambiguación, devolvemos null
-            if (string.IsNullOrEmpty(pagina?.Extract) || pagina.Extract.EndsWith("puede referirse a:") || pagina.Extract.Contains("homónimos"))
+            // Si la página no existe (pageid -1) o el extracto está vacío o es una desambiguación, intentamos una búsqueda
+            if (pagina == null || pagina.PageId == -1 || string.IsNullOrEmpty(pagina.Extract) || pagina.Extract.EndsWith("puede referirse a:") || pagina.Extract.Contains("homónimos"))
             {
+                // Si la búsqueda directa falla, usamos el buscador de Wikipedia
+                var urlBusqueda = $"https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch={Uri.EscapeDataString(terminoBusqueda)}&format=json";
+                var respuestaBusqueda = await cliente.GetAsync(urlBusqueda);
+                if (!respuestaBusqueda.IsSuccessStatusCode) return null;
+
+                var jsonBusqueda = await respuestaBusqueda.Content.ReadAsStringAsync();
+                var wikiBusquedaRespuesta = JsonSerializer.Deserialize<WikipediaSearchResponse>(jsonBusqueda);
+
+                var primerResultado = wikiBusquedaRespuesta?.Query?.Search?.FirstOrDefault();
+                if (primerResultado != null)
+                {
+                    // Volvemos a llamar a la función, pero con el título exacto que encontró la búsqueda
+                    return await BuscarEnWikipedia(primerResultado.Title);
+                }
                 return null;
             }
 
@@ -95,7 +121,6 @@ public class ArtistasService
         }
         catch (Exception)
         {
-            // Si algo falla (red, parsing, etc.), no hacemos nada y devolvemos null
             return null;
         }
     }
@@ -146,14 +171,28 @@ public class ArtistasService
         artista.Nombre = dto.Nombre;
         artista.Genero = dto.Genero;
         artista.ImagenUrl = dto.ImagenUrl;
-        if (dto.Biografia != null)
-        {
-            artista.Biografia = dto.Biografia;
-        }
-
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<string?> ActualizarBiografiaDesdeWikipedia(int id)
+    {
+        var artista = await _context.Artistas.FindAsync(id);
+        if (artista == null) return null;
+
+        var biografia = await ObtenerResumenDeWikipedia(artista.Nombre);
+        if (string.IsNullOrEmpty(biografia))
+        {
+            return "No se encontró una nueva biografía en Wikipedia.";
+        }
+
+        artista.Biografia = biografia;
+        await _context.SaveChangesAsync();
+
+        return biografia;
+    }
+
+
     public async Task<ResumenDto> ObtenerResumen()
     {
         var resumen = new ResumenDto
@@ -173,11 +212,28 @@ public class WikipediaResponse
     [JsonPropertyName("query")]
     public Query? Query { get; set; }
 }
+public class WikipediaSearchResponse
+{
+    [JsonPropertyName("query")]
+    public SearchQuery? Query { get; set; }
+}
 
 public class Query
 {
     [JsonPropertyName("pages")]
     public Dictionary<string, Page>? Pages { get; set; }
+    
+}
+public class SearchQuery
+{
+    [JsonPropertyName("search")]
+    public List<SearchResult>? Search { get; set; }
+}
+
+public class SearchResult
+{
+    [JsonPropertyName("title")]
+    public string Title { get; set; }
 }
 
 public class Page

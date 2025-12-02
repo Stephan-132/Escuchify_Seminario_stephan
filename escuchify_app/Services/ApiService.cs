@@ -99,6 +99,25 @@ public class ApiService
     {
         await _http.PutAsJsonAsync($"api/artistas/{id}", artista);
     }
+
+    public async Task<string?> ActualizarBiografia(int artistaId)
+    {
+        try
+        {
+            var response = await _http.PostAsync($"api/artistas/{artistaId}/actualizar-biografia", null);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                return result.GetProperty("biografia").GetString();
+            }
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public async Task ActualizarDisco(int id, escuchify_app.Models.Disco disco)
     {
         // TRUCO: Creamos un objeto anónimo SIN la lista de canciones

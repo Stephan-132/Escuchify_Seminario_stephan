@@ -61,6 +61,15 @@ public class ArtistasController : ControllerBase
 
         return NoContent();
     }
+
+    [HttpPost("{id}/actualizar-biografia")]
+    public async Task<IActionResult> ActualizarBiografia(int id)
+    {
+        var biografia = await _service.ActualizarBiografiaDesdeWikipedia(id);
+        if (biografia == null) return NotFound();
+        return Ok(new { biografia });
+    }
+
 [HttpGet("resumen")]
     public async Task<ActionResult<ResumenDto>> GetResumen()
     {
