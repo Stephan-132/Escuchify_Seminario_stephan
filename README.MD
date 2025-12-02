@@ -111,7 +111,7 @@ Escuchify_Seminario
 1.  **Clonar el repositorio:**
 
     ```bash
-    git clone [https://github.com/Taikaros/Escuchify_Seminario.git](https://github.com/Taikaros/Escuchify_Seminario.git)
+    git clone https://github.com/Taikaros/Escuchify_Seminario.git
     ```
 
 2.  **Iniciar el Backend (API):**
