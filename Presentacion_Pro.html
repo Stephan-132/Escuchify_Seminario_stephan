@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Defensa Escuchify Pro</title>
+    <!-- Iconos y Fuentes -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;500;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- CORE STYLES --- */
+        :root {
+            --bg: #020617; /* Casi negro */
+            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.1);
+            --primary: #06b6d4;  /* Cyan */
+            --secondary: #8b5cf6; /* Violeta */
+            --accent: #f43f5e;    /* Rosa */
+            --text-main: #f1f5f9;
+            --text-dim: #94a3b8;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Outfit', sans-serif;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* --- FONDO DE PARTÍCULAS --- */
+        #particles {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0;
+        }
+
+        /* --- SLIDES SYSTEM --- */
+        .slider-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+        }
+
+        .slide {
+            position: absolute;
+            width: 85%;
+            max-width: 1400px;
+            opacity: 0;
+            transform: scale(0.9) translateY(30px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none; /* No clickable cuando oculto */
+        }
+
+        .slide.active {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+            pointer-events: all;
+        }
+
+        .slide.prev { transform: translateX(-100px) scale(0.9); opacity: 0; }
+        .slide.next { transform: translateX(100px) scale(0.9); opacity: 0; }
+
+        /* --- TIPOGRAFÍA Y DECORACIÓN --- */
+        h1 {
+            font-size: 6rem;
+            line-height: 1;
+            margin-bottom: 1rem;
+            background: linear-gradient(135deg, #fff 0%, var(--primary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 40px rgba(6, 182, 212, 0.3);
+        }
+
+        h2 {
+            font-size: 3.5rem;
+            margin-bottom: 2rem;
+            position: relative;
+            display: inline-block;
+        }
+        
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: var(--secondary);
+            border-radius: 2px;
+        }
+
+        p { font-size: 1.5rem; color: var(--text-dim); max-width: 900px; text-align: center; line-height: 1.6; }
+
+        /* --- TARJETAS DE EQUIPO --- */
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            width: 100%;
+            margin-top: 3rem;
+        }
+        
+        .member-card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            border-radius: 16px;
+            text-align: center;
+            transition: 0.3s;
+        }
+        
+        .member-card:hover {
+            background: rgba(255,255,255,0.08);
+            border-color: var(--primary);
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px -10px var(--primary);
+        }
+
+        .avatar {
+            width: 80px; height: 80px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            border-radius: 50%;
+            margin: 0 auto 1rem auto;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; color: white;
+        }
+
+        /* --- DIAGRAMA DE ARQUITECTURA ANIMADO --- */
+        .arch-container {
+            display: flex;
+            gap: 40px;
+            align-items: center;
+            margin-top: 40px;
+        }
+
+        .layer-box {
+            width: 220px;
+            padding: 30px;
+            background: #0f172a;
+            border: 2px solid;
+            border-radius: 12px;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        .l-app { border-color: var(--primary); color: var(--primary); }
+        .l-api { border-color: var(--secondary); color: var(--secondary); }
+        .l-db { border-color: var(--accent); color: var(--accent); }
+
+        .flow-line {
+            height: 4px;
+            width: 100px;
+            background: #1e293b;
+            position: relative;
+            border-radius: 2px;
+        }
+
+        .data-packet {
+            position: absolute;
+            top: -3px;
+            left: 0;
+            width: 10px;
+            height: 10px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 0 10px white;
+            animation: flowData 2s infinite linear;
+        }
+
+        @keyframes flowData {
+            0% { left: 0; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { left: 100%; opacity: 0; }
+        }
+
+        /* --- VISOR DE CÓDIGO TYPEWRITER --- */
+        .code-window {
+            width: 100%;
+            max-width: 900px;
+            background: #0d1117;
+            border-radius: 10px;
+            border: 1px solid #30363d;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            overflow: hidden;
+            text-align: left;
+            margin-top: 20px;
+        }
+
+        .window-header {
+            background: #161b22;
+            padding: 12px;
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid #30363d;
+        }
+
+        .w-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .red { background: #ff5f56; } .yellow { background: #ffbd2e; } .green { background: #27c93f; }
+
+        .code-body {
+            padding: 25px;
+            font-family: 'Fira Code', monospace;
+            font-size: 1.1rem;
+            color: #e6edf3;
+            min-height: 200px;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 10px;
+            height: 1.2rem;
+            background: var(--primary);
+            animation: blink 1s infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* Highlight classes manually injected by JS */
+        .hl-k { color: #ff7b72; } /* Keyword */
+        .hl-s { color: #a5d6ff; } /* String */
+        .hl-c { color: #79c0ff; } /* Class/Prop */
+
+        /* --- UTILS --- */
+        .tech-badges { display: flex; gap: 15px; margin-top: 2rem; }
+        .badge { 
+            padding: 8px 16px; background: rgba(255,255,255,0.1); 
+            border-radius: 50px; font-weight: 600; font-size: 0.9rem;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .controls {
+            position: fixed; bottom: 30px; right: 30px;
+            display: flex; gap: 10px; z-index: 100;
+        }
+        .btn-nav {
+            width: 50px; height: 50px; border-radius: 50%;
+            background: var(--glass); border: 1px solid var(--border);
+            color: white; cursor: pointer; transition: 0.2s;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .btn-nav:hover { background: var(--primary); border-color: var(--primary); }
+
+        .progress-bar {
+            position: fixed; bottom: 0; left: 0; height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            transition: width 0.5s;
+        }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="particles"></canvas>
+
+    <div class="slider-wrapper">
+
+        <!-- SLIDE 1: PORTADA -->
+        <div class="slide active" data-index="0">
+            <div style="font-size: 5rem; animation: float 3s infinite ease-in-out;">🎵</div>
+            <h1>Escuchify</h1>
+            <p>Sistema de Gestión Musical con Arquitectura Limpia</p>
+            
+            <div class="tech-badges">
+                <span class="badge"><i class="fab fa-microsoft"></i> .NET 9</span>
+                <span class="badge"><i class="fas fa-layer-group"></i> Blazor</span>
+                <span class="badge"><i class="fas fa-database"></i> SQLite</span>
+            </div>
+
+            <div style="margin-top: 4rem; opacity: 0.6; font-size: 0.9rem;">
+                Presiona ➡️ para comenzar
+            </div>
+        </div>
+
+        <!-- SLIDE 2: EQUIPO -->
+        <div class="slide" data-index="1">
+            <h2>Codigo Universitario</h2>
+            <p>Cada integrante se especializó en un área clave del desarrollo.</p>
+            
+            <div class="team-grid">
+                <div class="member-card">
+                    <div class="avatar"><i class="fas fa-crown"></i></div>
+                    <h3 style="color:var(--primary)">Taikaros</h3>
+                    <p style="font-size:0.9rem">Líder Técnico & Backend</p>
+                </div>
+                <div class="member-card">
+                    <div class="avatar"><i class="fas fa-paint-brush"></i></div>
+                    <h3>Franco</h3>
+                    <p style="font-size:0.9rem">Frontend & UI/UX</p>
+                </div>
+                <div class="member-card">
+                    <div class="avatar"><i class="fas fa-server"></i></div>
+                    <h3>Stephan</h3>
+                    <p style="font-size:0.9rem">Base de Datos</p>
+                </div>
+                <div class="member-card">
+                    <div class="avatar"><i class="fas fa-bug"></i></div>
+                    <h3>Lucas</h3>
+                    <p style="font-size:0.9rem">QA & Testing</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 3: ARQUITECTURA ANIMADA -->
+        <div class="slide" data-index="2">
+            <h2>Clean Architecture</h2>
+            <p>Separamos el sistema para garantizar escalabilidad y seguridad.</p>
+
+            <div class="arch-container">
+                <div class="layer-box l-app">
+                    <i class="fas fa-desktop fa-3x"></i><br><br>
+                    <strong>APP</strong><br>Blazor
+                </div>
+                
+                <div class="flow-line">
+                    <div class="data-packet"></div>
+                </div>
+
+                <div class="layer-box l-api">
+                    <i class="fas fa-cogs fa-3x"></i><br><br>
+                    <strong>API REST</strong><br>Controllers
+                </div>
+
+                <div class="flow-line">
+                    <div class="data-packet" style="animation-delay: 1s;"></div>
+                </div>
+
+                <div class="layer-box l-db">
+                    <i class="fas fa-database fa-3x"></i><br><br>
+                    <strong>DATA</strong><br>SQLite
+                </div>
+            </div>
+            
+            <div style="margin-top: 2rem; background: rgba(0,0,0,0.3); padding: 1rem 2rem; border-radius: 50px;">
+                <i class="fas fa-info-circle" style="color:var(--primary)"></i> El Frontend nunca toca la BD. Todo pasa por la API.
+            </div>
+        </div>
+
+        <!-- SLIDE 4: CÓDIGO TYPEWRITER -->
+        <div class="slide" data-index="3">
+            <h2>Validaciones & JSON</h2>
+            <p>El sistema protege la integridad de los datos antes de guardarlos.</p>
+
+            <div class="code-window">
+                <div class="window-header">
+                    <div class="w-dot red"></div><div class="w-dot yellow"></div><div class="w-dot green"></div>
+                    <span style="margin-left: 10px; font-size: 0.8rem; color: #8b949e">ArtistaDto.cs</span>
+                </div>
+                <div class="code-body" id="typewriter-area">
+                    <!-- El texto se escribirá aquí con JS -->
+                    <span class="cursor"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- SLIDE 5: DEMO -->
+        <div class="slide" data-index="4">
+            <h1 style="font-size: 4rem;">DEMOSTRACIÓN</h1>
+            <p>Veamos el sistema funcionando en tiempo real.</p>
+            <br>
+            <div style="position: relative;">
+                <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary); filter: blur(40px); opacity: 0.4; z-index: -1;"></div>
+                <button style="background: white; color: black; border: none; padding: 1rem 3rem; font-size: 1.5rem; font-weight: bold; border-radius: 50px; cursor: pointer; transition: 0.2s;">
+                    <i class="fas fa-play"></i> INICIAR APP
+                </button>
+            </div>
+        </div>
+
+        <!-- SLIDE 6: FINAL -->
+        <div class="slide" data-index="5">
+            <h2>Misión Cumplida</h2>
+            <ul style="text-align: left; font-size: 1.3rem; margin-top: 2rem;">
+                <li style="margin-bottom: 1rem"><i class="fas fa-check-circle" style="color:var(--primary)"></i> CRUD Completo (Artistas, Discos, Canciones)</li>
+                <li style="margin-bottom: 1rem"><i class="fas fa-check-circle" style="color:var(--primary)"></i> Tests Unitarios (100% Passed)</li>
+                <li style="margin-bottom: 1rem"><i class="fas fa-check-circle" style="color:var(--primary)"></i> Integración con API de Deezer</li>
+            </ul>
+            <br><br>
+            <p>Gracias por su atención</p>
+        </div>
+
+    </div>
+
+    <div class="progress-bar" id="progress"></div>
+
+    <div class="controls">
+        <button class="btn-nav" onclick="prevSlide()"><i class="fas fa-arrow-left"></i></button>
+        <button class="btn-nav" onclick="nextSlide()"><i class="fas fa-arrow-right"></i></button>
+    </div>
+
+    <script>
+        // --- LÓGICA DE SLIDES ---
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        const progressBar = document.getElementById('progress');
+
+        function updateSlide() {
+            slides.forEach((s, i) => {
+                s.classList.remove('active', 'prev', 'next');
+                if (i < currentSlide) s.classList.add('prev');
+                if (i > currentSlide) s.classList.add('next');
+                if (i === currentSlide) {
+                    s.classList.add('active');
+                    // Activar efectos especiales
+                    if(i === 3) startTypewriter();
+                }
+            });
+            progressBar.style.width = ((currentSlide + 1) / totalSlides) * 100 + '%';
+        }
+
+        function nextSlide() {
+            if (currentSlide < totalSlides - 1) {
+                currentSlide++;
+                updateSlide();
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlide > 0) {
+                currentSlide--;
+                updateSlide();
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
+            if (e.key === 'ArrowLeft') prevSlide();
+        });
+
+        // --- EFECTO TYPEWRITER (El Machete para el código) ---
+        const codeHTML = `
+<span class="hl-k">public class</span> <span class="hl-c">ArtistaDto</span>
+{
+    [<span class="hl-c">Required</span>(ErrorMessage = <span class="hl-s">"Nombre obligatorio"</span>)]
+    <span class="hl-k">public string</span> Nombre { <span class="hl-k">get</span>; <span class="hl-k">set;</span> }
+
+    [<span class="hl-c">Required</span>]
+    <span class="hl-k">public string</span> Genero { <span class="hl-k">get</span>; <span class="hl-k">set;</span> }
+}`;
+        
+        let typeWriterDone = false;
+        function startTypewriter() {
+            if (typeWriterDone) return;
+            typeWriterDone = true;
+            
+            const container = document.getElementById('typewriter-area');
+            container.innerHTML = '<span class="cursor"></span>'; // Reset
+            
+            // Simulación simple: inyectar el HTML de golpe con un fade es mejor para el rendimiento y la lectura
+            // pero haremos un efecto de "escritura rápida"
+            
+            container.innerHTML = codeHTML + '<span class="cursor"></span>';
+            // Nota: Hacer typewrite carácter por carácter con HTML tags es complejo, 
+            // así que simulamos que "aparece" como si se pegara.
+        }
+
+        // --- FONDO DE PARTÍCULAS (Canvas) ---
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        let particlesArray;
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2;
+                this.speedX = (Math.random() * 1) - 0.5;
+                this.speedY = (Math.random() * 1) - 0.5;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x > canvas.width || this.x < 0) this.speedX = -this.speedX;
+                if (this.y > canvas.height || this.y < 0) this.speedY = -this.speedY;
+            }
+            draw() {
+                ctx.fillStyle = 'rgba(34, 211, 238, 0.5)';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function initParticles() {
+            particlesArray = [];
+            for (let i = 0; i < 100; i++) {
+                particlesArray.push(new Particle());
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < particlesArray.length; i++) {
+                particlesArray[i].update();
+                particlesArray[i].draw();
+                
+                // Conexiones
+                for (let j = i; j < particlesArray.length; j++) {
+                    const dx = particlesArray[i].x - particlesArray[j].x;
+                    const dy = particlesArray[i].y - particlesArray[j].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    if (distance < 100) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(34, 211, 238, ${1 - distance/100})`;
+                        ctx.lineWidth = 0.5;
+                        ctx.moveTo(particlesArray[i].x, particlesArray[i].y);
+                        ctx.lineTo(particlesArray[j].x, particlesArray[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animateParticles);
+        }
+
+        initParticles();
+        animateParticles();
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initParticles();
+        });
+
+    </script>
+</body>
+</html>
